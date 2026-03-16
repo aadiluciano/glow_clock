@@ -38,7 +38,6 @@ A minimalist, high-performance desktop clock for Windows. Featuring customizable
 [![glow_clock3](https://github.com/aadiluciano/glow_clock/blob/main/3.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/3.jpg)</br>
 [![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/4.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/4.jpg)
 [![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/5.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/5.jpg)
-[![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/6.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/6.jpg)
 
 <a href="https://raw.githubusercontent.com/aadiluciano/glow_clock/main/6.jpg">
   <img
