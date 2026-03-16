@@ -51,4 +51,3 @@ A minimalist, high-performance desktop clock for Windows. Featuring customizable
     "
   />
 </a>
-
