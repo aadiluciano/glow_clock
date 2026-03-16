@@ -38,3 +38,5 @@ A minimalist, high-performance desktop clock for Windows. Featuring customizable
 - PyQt6
 
 ### Building the Executable
+
+![glow_clock1]([path/to/image.png](https://github.com/aadiluciano/glow_clock/blob/main/1.jpg))
