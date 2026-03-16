@@ -10,13 +10,12 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QVBoxLayout,
 from PyQt6.QtCore import Qt, QTimer, QDateTime, QPoint
 from PyQt6.QtGui import QFont, QColor, QLinearGradient, QPainter, QPen, QBrush, QIcon, QPixmap, QAction
 
-# --- ROBUST PATH LOGIC ---
+# --- PATH LOGIC ---
 if getattr(sys, 'frozen', False):
     BASE_DIR = os.path.dirname(sys.executable)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# default.json is used for auto-loading and auto-saving the current state
 DEFAULT_CONFIG = os.path.join(BASE_DIR, "default.json")
 APP_NAME = "MinimalGlowClockPro"
 
@@ -69,8 +68,22 @@ class FloatingClock(QWidget):
             "glow_radius": 20, "mode": "Time", "target_time": None
         }
         
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
+        # FIX 1: Enhanced Window Flags
+        # Tool: Hides from Taskbar
+        # Frameless: No borders
+        # WindowStaysOnTopHint: Front layer
+        # WindowTransparentForInput: NOT used here because we want to drag it
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | 
+            Qt.WindowType.WindowStaysOnTopHint | 
+            Qt.WindowType.Tool |
+            Qt.WindowType.NoDropShadowWindowHint
+        )
+        
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # FIX 2: Prevent taking focus from other apps
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
         self.layout = QVBoxLayout()
         self.label = GradientLabel(self.settings)
@@ -104,6 +117,10 @@ class FloatingClock(QWidget):
         auto_save_default()
 
     def refresh_display(self):
+        # FIX 3: Force the window to the top of the stack periodically
+        if not self.isActiveWindow():
+             self.raise_()
+
         if self.settings["mode"] == "Time":
             t = datetime.now().strftime("%H:%M:%S")
         else:
@@ -177,16 +194,20 @@ class FloatingClock(QWidget):
             self.settings["mode"] = "Countdown"; self.update_style()
 
     def reset_to_time(self): self.settings["mode"] = "Time"; self.update_style()
+    
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+    
     def mouseMoveEvent(self, event):
         if self.drag_pos:
             self.move(event.globalPosition().toPoint() - self.drag_pos)
             self.settings["x"], self.settings["y"] = self.x(), self.y()
+    
     def mouseReleaseEvent(self, event):
         self.drag_pos = None
         auto_save_default()
+    
     def remove_clock(self):
         if self in active_clocks: active_clocks.remove(self)
         self.close()
@@ -210,7 +231,7 @@ def perform_save(path):
     try:
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
-    except Exception as e: print(f"Save error: {e}")
+    except: pass
 
 def load_layout():
     path, _ = QFileDialog.getOpenFileName(None, "Open Layout", "", "JSON (*.json)")
@@ -218,7 +239,7 @@ def load_layout():
         for c in active_clocks[:]: c.close()
         active_clocks.clear()
         perform_load(path)
-        auto_save_default() # Update default.json to this newly loaded layout
+        auto_save_default()
 
 def perform_load(path):
     if os.path.exists(path):
@@ -227,7 +248,7 @@ def perform_load(path):
                 for item in json.load(f):
                     c = FloatingClock(item["settings"], item["id"])
                     active_clocks.append(c); c.show()
-        except Exception as e: print(f"Load error: {e}")
+        except: pass
 
 def toggle_startup():
     path = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -268,7 +289,6 @@ def main():
     tray.setContextMenu(tray_menu)
     tray.show()
 
-    # Always auto-load from default.json on launch
     perform_load(DEFAULT_CONFIG)
     
     if not active_clocks:
