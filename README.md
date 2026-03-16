@@ -17,7 +17,7 @@ A minimalist, high-performance desktop clock for Windows. Featuring customizable
   - Auto-saves your positions and styles to `default.json`.
   - Manual "Save Layout" and "Load Layout" options to switch between different setups.
 - **🚀 System Integration**:
-  - Run at Startup option (via Windows Registry).
+  - Run at Startup option.
   - System Tray icon for quick management.
   - Frameless, "Always on Top" design.
 
@@ -25,9 +25,9 @@ A minimalist, high-performance desktop clock for Windows. Featuring customizable
 
 ## 🖱️ Controls
 
-- **Left-Click + Drag**: Move the clock anywhere on your screen.
-- **Right-Click**: Access the customization menu, add new clocks, or save layouts.
-- **System Tray (Bottom Right)**: Manage all clocks, toggle startup, or exit the application.
+- **Left-Click + Drag** Move the clock anywhere on your screen.
+- **Right-Click** Access the customization menu, add new clocks, or save layouts.
+- **System Tray** Manage all clocks, toggle startup, or exit the application.
 
 ---
 
