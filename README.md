@@ -39,4 +39,5 @@ A minimalist, high-performance desktop clock for Windows. Featuring customizable
 
 ### Building the Executable
 
-![glow_clock1]([path/to/image.png](https://github.com/aadiluciano/glow_clock/blob/main/1.jpg))
+![glow_clock1]([https://example.com/image.png](https://github.com/aadiluciano/glow_clock/blob/main/1.jpg))
+
