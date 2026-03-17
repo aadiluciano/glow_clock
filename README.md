@@ -30,9 +30,9 @@ Right-Click any clock to access the customization menu.
 Manage all clocks via the glowing clock icon in your System Tray (near the Wi-Fi/Volume).
 
 🧠 The Philosophy
-We believe that tools should be opinionated about aesthetics but flexible in function.
+We believe that tools should be opinionated aesthetically but flexible in function.
 
-Default system clocks are built for "everyone." Minimal Glow Clock Pro is built for people who spend 10+ hours a day in front of a screen and want their environment to look as sharp as their code. It uses a low-footprint Python/PyQt6 backend, ensuring that while the clock looks heavy on "glow," it’s feather-light on your CPU.
+Default system clocks are built for "everyone." glow_clock is built for people who spend 10+ hours a day in front of a screen and want their environment to look as sharp as their code. It uses a low-footprint Python/PyQt6 backend, ensuring that while the clock looks heavy on "glow," it’s feather-light on your CPU.
 
 Built with ❤️ by kMoX. Feel free to fork, tweak the glow algorithms, or suggest new features. Pull requests are always welcome for performance optimizations or additional layout features.
 
