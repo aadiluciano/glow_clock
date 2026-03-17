@@ -72,18 +72,15 @@ class FloatingClock(QWidget):
             "color1": "#FFFFFF", "color2": "#00FFFF", "gradient_on": False,
             "gradient_balance": 50, "glow_on": True, "glow_color": "#00FFFF",
             "glow_radius": 20, "mode": "Time", "target_time": None,
-            "timezone_name": None 
+            "timezone_name": None, "always_on_top": True 
         }
         
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint | 
-            Qt.WindowType.WindowStaysOnTopHint | 
-            Qt.WindowType.Tool |
-            Qt.WindowType.NoDropShadowWindowHint
-        )
-        
+        if "always_on_top" not in self.settings:
+            self.settings["always_on_top"] = True
+
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._menu_active = False # Flag to prevent re-assertion during right-click
         
         self.layout = QVBoxLayout()
         self.label = GradientLabel(self.settings)
@@ -92,12 +89,21 @@ class FloatingClock(QWidget):
         self.setLayout(self.layout)
         
         self.move(self.settings.get("x", 200), self.settings.get("y", 200))
+        self.apply_window_flags()
         self.update_style()
         
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh_display)
         self.timer.start(200)
         self.drag_pos = None
+
+    def apply_window_flags(self):
+        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool | Qt.WindowType.NoDropShadowWindowHint
+        if self.settings["always_on_top"]:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        
+        self.setWindowFlags(flags)
+        self.show()
 
     def update_style(self):
         f = QFont(self.settings["font_family"], self.settings["font_size"], QFont.Weight.Bold)
@@ -117,14 +123,16 @@ class FloatingClock(QWidget):
         auto_save_default()
 
     def refresh_display(self):
+        # RE-ASSERTION logic updated:
+        # Don't call raise_() if the menu is open, otherwise the clock jumps OVER the menu
+        if self.settings["always_on_top"] and not self._menu_active:
+            self.raise_()
+
         if self.settings["mode"] == "Time":
             tz_name = self.settings.get("timezone_name")
-            if tz_name:
-                try:
-                    now = datetime.now(zoneinfo.ZoneInfo(tz_name))
-                except:
-                    now = datetime.now()
-            else:
+            try:
+                now = datetime.now(zoneinfo.ZoneInfo(tz_name)) if tz_name else datetime.now()
+            except:
                 now = datetime.now()
             t = now.strftime("%H:%M:%S")
         else:
@@ -144,9 +152,10 @@ class FloatingClock(QWidget):
             self.label.setText(t)
 
     def contextMenuEvent(self, event):
-        # Setting the window flag for the menu itself ensures it stays above the topmost clock
+        self._menu_active = True # Tell the timer to stop re-asserting
         menu = QMenu(self)
-        menu.setWindowFlags(menu.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        # Apply StayOnTop to the menu itself
+        menu.setWindowFlags(menu.windowFlags() | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
         
         if self.settings["mode"] == "Time":
             menu.addAction("Set Countdown").triggered.connect(self.set_target)
@@ -155,6 +164,11 @@ class FloatingClock(QWidget):
             menu.addAction("Switch to Real Time").triggered.connect(self.reset_to_time)
         
         menu.addSeparator()
+        ontop_act = menu.addAction("📌 Stay on Top")
+        ontop_act.setCheckable(True)
+        ontop_act.setChecked(self.settings["always_on_top"])
+        ontop_act.triggered.connect(self.toggle_ontop)
+
         style_m = menu.addMenu("Customize Visuals")
         style_m.addAction("Change Font").triggered.connect(self.change_font)
         style_m.addAction("Toggle Gradient").triggered.connect(self.toggle_grad)
@@ -164,6 +178,7 @@ class FloatingClock(QWidget):
         style_m.addAction("Toggle Glow").triggered.connect(self.toggle_glow)
         style_m.addAction("Glow Color").triggered.connect(self.change_glow_color)
         style_m.addAction("Glow Intensity").triggered.connect(self.change_glow_radius)
+        
         menu.addSeparator()
         menu.addAction("➕ Add New Clock").triggered.connect(add_new_clock)
         menu.addAction("💾 Save Layout As...").triggered.connect(save_layout_as)
@@ -172,6 +187,12 @@ class FloatingClock(QWidget):
         menu.addAction("❌ Close This Clock").triggered.connect(self.remove_clock)
         
         menu.exec(event.globalPos())
+        self._menu_active = False # Resume normal re-assertion
+
+    def toggle_ontop(self):
+        self.settings["always_on_top"] = not self.settings["always_on_top"]
+        self.apply_window_flags()
+        auto_save_default()
 
     def show_tz_dialog(self):
         all_tz = sorted(list(zoneinfo.available_timezones()))
@@ -180,50 +201,31 @@ class FloatingClock(QWidget):
         dialog.setMinimumSize(350, 450)
         dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         layout = QVBoxLayout(dialog)
-        
-        search_input = QLineEdit()
-        search_input.setPlaceholderText("Filter timezones...")
+        search_input = QLineEdit(); search_input.setPlaceholderText("Filter timezones...")
         layout.addWidget(search_input)
-        
         list_widget = QListWidget()
-        local_item = QListWidgetItem("Local System Time")
-        local_item.setData(Qt.ItemDataRole.UserRole, None)
+        local_item = QListWidgetItem("Local System Time"); local_item.setData(Qt.ItemDataRole.UserRole, None)
         list_widget.addItem(local_item)
-        
         for tz in all_tz:
-            item = QListWidgetItem(tz)
-            item.setData(Qt.ItemDataRole.UserRole, tz)
-            list_widget.addItem(item)
-            
+            item = QListWidgetItem(tz); item.setData(Qt.ItemDataRole.UserRole, tz); list_widget.addItem(item)
         layout.addWidget(list_widget)
-        
         def filter_list(text):
             for i in range(list_widget.count()):
-                item = list_widget.item(i)
-                item.setHidden(text.lower() not in item.text().lower())
+                item = list_widget.item(i); item.setHidden(text.lower() not in item.text().lower())
         search_input.textChanged.connect(filter_list)
-
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        btns.accepted.connect(dialog.accept)
-        btns.rejected.connect(dialog.reject)
-        layout.addWidget(btns)
-        
+        btns.accepted.connect(dialog.accept); btns.rejected.connect(dialog.reject); layout.addWidget(btns)
         if dialog.exec():
             selected = list_widget.currentItem()
             if selected:
                 self.settings["timezone_name"] = selected.data(Qt.ItemDataRole.UserRole)
-                self.settings["mode"] = "Time"
-                auto_save_default()
+                self.settings["mode"] = "Time"; auto_save_default()
 
     def set_target(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Target Time")
+        dialog = QDialog(self); dialog.setWindowTitle("Target Time")
         dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
-        l = QVBoxLayout(dialog)
-        dt = QDateTimeEdit(QDateTime.currentDateTime().addSecs(3600))
-        dt.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
-        dt.setCalendarPopup(True)
-        l.addWidget(dt)
+        l = QVBoxLayout(dialog); dt = QDateTimeEdit(QDateTime.currentDateTime().addSecs(3600))
+        dt.setDisplayFormat("yyyy-MM-dd HH:mm:ss"); dt.setCalendarPopup(True); l.addWidget(dt)
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         btns.accepted.connect(dialog.accept); btns.rejected.connect(dialog.reject); l.addWidget(btns)
         if dialog.exec():
@@ -231,9 +233,7 @@ class FloatingClock(QWidget):
             self.settings["mode"] = "Countdown"; self.update_style()
 
     def reset_to_time(self): 
-        self.settings["mode"] = "Time"
-        self.settings["timezone_name"] = None
-        self.update_style()
+        self.settings["mode"] = "Time"; self.settings["timezone_name"] = None; self.update_style()
 
     def toggle_grad(self): self.settings["gradient_on"] = not self.settings["gradient_on"]; self.update_style()
     def toggle_glow(self): self.settings["glow_on"] = not self.settings["glow_on"]; self.update_style()
@@ -267,13 +267,11 @@ class FloatingClock(QWidget):
             self.settings["x"], self.settings["y"] = self.x(), self.y()
     
     def mouseReleaseEvent(self, event):
-        self.drag_pos = None
-        auto_save_default()
+        self.drag_pos = None; auto_save_default()
     
     def remove_clock(self):
         if self in active_clocks: active_clocks.remove(self)
-        self.close()
-        auto_save_default()
+        self.close(); auto_save_default()
 
 # --- APP MANAGEMENT ---
 active_clocks = []
@@ -284,10 +282,6 @@ def add_new_clock():
 def auto_save_default():
     perform_save(DEFAULT_CONFIG)
 
-def save_layout_as():
-    path, _ = QFileDialog.getSaveFileName(None, "Save Layout", "", "JSON (*.json)")
-    if path: perform_save(path)
-
 def perform_save(path):
     data = [{"id": c.clock_id, "settings": c.settings} for c in active_clocks]
     try:
@@ -295,13 +289,15 @@ def perform_save(path):
             json.dump(data, f, indent=4)
     except: pass
 
+def save_layout_as():
+    path, _ = QFileDialog.getSaveFileName(None, "Save Layout", "", "JSON (*.json)")
+    if path: perform_save(path)
+
 def load_layout():
     path, _ = QFileDialog.getOpenFileName(None, "Open Layout", "", "JSON (*.json)")
     if path:
         for c in active_clocks[:]: c.close()
-        active_clocks.clear()
-        perform_load(path)
-        auto_save_default()
+        active_clocks.clear(); perform_load(path); auto_save_default()
 
 def perform_load(path):
     if os.path.exists(path):
@@ -312,6 +308,12 @@ def perform_load(path):
                     c = FloatingClock(item["settings"], item["id"])
                     active_clocks.append(c); c.show()
         except: pass
+
+def toggle_all_ontop(state):
+    for c in active_clocks:
+        c.settings["always_on_top"] = state
+        c.apply_window_flags()
+    auto_save_default()
 
 def toggle_startup():
     path = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -339,6 +341,12 @@ def main():
     tray = QSystemTrayIcon(app_icon, app)
     tray_menu = QMenu()
     tray_menu.addAction("➕ Add New Clock").triggered.connect(add_new_clock)
+    
+    global_top_act = QAction("📌 All Clocks Always on Top", tray_menu, checkable=True)
+    global_top_act.setChecked(True)
+    global_top_act.triggered.connect(toggle_all_ontop)
+    tray_menu.addAction(global_top_act)
+    
     tray_menu.addSeparator()
     tray_menu.addAction("💾 Save Layout As...").triggered.connect(save_layout_as)
     tray_menu.addAction("📂 Load Layout...").triggered.connect(load_layout)
