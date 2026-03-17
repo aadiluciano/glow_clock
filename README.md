@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/aadiluciano/glow_clock/main/app_icon.ico" width="24" height="24" style="vertical-align:middle"> **glow_clock**
-</br>
-Time, elevated. Aesthetics, prioritized.
+</br></br>
+Time, elevated. Aesthetics, prioritized.</br>
 Most desktop clocks are either buried in a taskbar or cluttered with widgets you didn't ask for. Minimal Glow Clock Pro was built for the professional who needs high-density information (multiple timezones, countdowns) wrapped in a minimalist, cyberpunk-inspired aesthetic.
 
 It’s not just a clock; it’s desktop furniture.
