@@ -3,10 +3,16 @@ import json
 import os
 import winreg
 from datetime import datetime
+try:
+    import zoneinfo
+except ImportError:
+    from backports import zoneinfo
+
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QVBoxLayout, 
                              QMenu, QFontDialog, QColorDialog, QDialog,
                              QDateTimeEdit, QDialogButtonBox, QGraphicsDropShadowEffect,
-                             QSystemTrayIcon, QInputDialog, QFileDialog)
+                             QSystemTrayIcon, QInputDialog, QFileDialog, 
+                             QLineEdit, QListWidget, QListWidgetItem)
 from PyQt6.QtCore import Qt, QTimer, QDateTime, QPoint
 from PyQt6.QtGui import QFont, QColor, QLinearGradient, QPainter, QPen, QBrush, QIcon, QPixmap, QAction
 
@@ -65,14 +71,10 @@ class FloatingClock(QWidget):
             "x": 200, "y": 200, "font_family": "Segoe UI Semibold", "font_size": 48,
             "color1": "#FFFFFF", "color2": "#00FFFF", "gradient_on": False,
             "gradient_balance": 50, "glow_on": True, "glow_color": "#00FFFF",
-            "glow_radius": 20, "mode": "Time", "target_time": None
+            "glow_radius": 20, "mode": "Time", "target_time": None,
+            "timezone_name": None 
         }
         
-        # FIX 1: Enhanced Window Flags
-        # Tool: Hides from Taskbar
-        # Frameless: No borders
-        # WindowStaysOnTopHint: Front layer
-        # WindowTransparentForInput: NOT used here because we want to drag it
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint | 
             Qt.WindowType.WindowStaysOnTopHint | 
@@ -81,8 +83,6 @@ class FloatingClock(QWidget):
         )
         
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        
-        # FIX 2: Prevent taking focus from other apps
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
         self.layout = QVBoxLayout()
@@ -91,12 +91,12 @@ class FloatingClock(QWidget):
         self.layout.addWidget(self.label)
         self.setLayout(self.layout)
         
-        self.move(self.settings["x"], self.settings["y"])
+        self.move(self.settings.get("x", 200), self.settings.get("y", 200))
         self.update_style()
         
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh_display)
-        self.timer.start(100)
+        self.timer.start(200)
         self.drag_pos = None
 
     def update_style(self):
@@ -117,12 +117,16 @@ class FloatingClock(QWidget):
         auto_save_default()
 
     def refresh_display(self):
-        # FIX 3: Force the window to the top of the stack periodically
-        if not self.isActiveWindow():
-             self.raise_()
-
         if self.settings["mode"] == "Time":
-            t = datetime.now().strftime("%H:%M:%S")
+            tz_name = self.settings.get("timezone_name")
+            if tz_name:
+                try:
+                    now = datetime.now(zoneinfo.ZoneInfo(tz_name))
+                except:
+                    now = datetime.now()
+            else:
+                now = datetime.now()
+            t = now.strftime("%H:%M:%S")
         else:
             if self.settings["target_time"]:
                 try:
@@ -135,14 +139,21 @@ class FloatingClock(QWidget):
                     else: t = "00:00:00"
                 except: t = "Error"
             else: t = "Set Target"
-        if self.label.text() != t: self.label.setText(t)
+            
+        if self.label.text() != t: 
+            self.label.setText(t)
 
     def contextMenuEvent(self, event):
+        # Setting the window flag for the menu itself ensures it stays above the topmost clock
         menu = QMenu(self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        
         if self.settings["mode"] == "Time":
             menu.addAction("Set Countdown").triggered.connect(self.set_target)
+            menu.addAction("Select Timezone").triggered.connect(self.show_tz_dialog)
         else:
             menu.addAction("Switch to Real Time").triggered.connect(self.reset_to_time)
+        
         menu.addSeparator()
         style_m = menu.addMenu("Customize Visuals")
         style_m.addAction("Change Font").triggered.connect(self.change_font)
@@ -155,11 +166,74 @@ class FloatingClock(QWidget):
         style_m.addAction("Glow Intensity").triggered.connect(self.change_glow_radius)
         menu.addSeparator()
         menu.addAction("➕ Add New Clock").triggered.connect(add_new_clock)
-        menu.addAction("📂 Save Current Layout As...").triggered.connect(save_layout_as)
+        menu.addAction("💾 Save Layout As...").triggered.connect(save_layout_as)
         menu.addAction("📂 Load Layout File...").triggered.connect(load_layout)
         menu.addSeparator()
         menu.addAction("❌ Close This Clock").triggered.connect(self.remove_clock)
+        
         menu.exec(event.globalPos())
+
+    def show_tz_dialog(self):
+        all_tz = sorted(list(zoneinfo.available_timezones()))
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select Timezone")
+        dialog.setMinimumSize(350, 450)
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        layout = QVBoxLayout(dialog)
+        
+        search_input = QLineEdit()
+        search_input.setPlaceholderText("Filter timezones...")
+        layout.addWidget(search_input)
+        
+        list_widget = QListWidget()
+        local_item = QListWidgetItem("Local System Time")
+        local_item.setData(Qt.ItemDataRole.UserRole, None)
+        list_widget.addItem(local_item)
+        
+        for tz in all_tz:
+            item = QListWidgetItem(tz)
+            item.setData(Qt.ItemDataRole.UserRole, tz)
+            list_widget.addItem(item)
+            
+        layout.addWidget(list_widget)
+        
+        def filter_list(text):
+            for i in range(list_widget.count()):
+                item = list_widget.item(i)
+                item.setHidden(text.lower() not in item.text().lower())
+        search_input.textChanged.connect(filter_list)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(dialog.accept)
+        btns.rejected.connect(dialog.reject)
+        layout.addWidget(btns)
+        
+        if dialog.exec():
+            selected = list_widget.currentItem()
+            if selected:
+                self.settings["timezone_name"] = selected.data(Qt.ItemDataRole.UserRole)
+                self.settings["mode"] = "Time"
+                auto_save_default()
+
+    def set_target(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Target Time")
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        l = QVBoxLayout(dialog)
+        dt = QDateTimeEdit(QDateTime.currentDateTime().addSecs(3600))
+        dt.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
+        dt.setCalendarPopup(True)
+        l.addWidget(dt)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(dialog.accept); btns.rejected.connect(dialog.reject); l.addWidget(btns)
+        if dialog.exec():
+            self.settings["target_time"] = dt.dateTime().toPyDateTime().isoformat()
+            self.settings["mode"] = "Countdown"; self.update_style()
+
+    def reset_to_time(self): 
+        self.settings["mode"] = "Time"
+        self.settings["timezone_name"] = None
+        self.update_style()
 
     def toggle_grad(self): self.settings["gradient_on"] = not self.settings["gradient_on"]; self.update_style()
     def toggle_glow(self): self.settings["glow_on"] = not self.settings["glow_on"]; self.update_style()
@@ -183,18 +257,6 @@ class FloatingClock(QWidget):
         font, ok = (res[0], res[1]) if isinstance(res[1], bool) else (res[1], res[0])
         if ok: self.settings["font_family"] = font.family(); self.settings["font_size"] = font.pointSize(); self.update_style()
 
-    def set_target(self):
-        dialog = QDialog(self); dialog.setWindowTitle("Target Time")
-        l = QVBoxLayout(dialog); dt = QDateTimeEdit(QDateTime.currentDateTime().addSecs(3600))
-        dt.setDisplayFormat("yyyy-MM-dd HH:mm:ss"); dt.setCalendarPopup(True); l.addWidget(dt)
-        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        btns.accepted.connect(dialog.accept); btns.rejected.connect(dialog.reject); l.addWidget(btns)
-        if dialog.exec():
-            self.settings["target_time"] = dt.dateTime().toPyDateTime().isoformat()
-            self.settings["mode"] = "Countdown"; self.update_style()
-
-    def reset_to_time(self): self.settings["mode"] = "Time"; self.update_style()
-    
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
@@ -245,18 +307,21 @@ def perform_load(path):
     if os.path.exists(path):
         try:
             with open(path, "r") as f:
-                for item in json.load(f):
+                content = json.load(f)
+                for item in content:
                     c = FloatingClock(item["settings"], item["id"])
                     active_clocks.append(c); c.show()
         except: pass
 
 def toggle_startup():
     path = r"Software\Microsoft\Windows\CurrentVersion\Run"
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_ALL_ACCESS) as key:
-        if check_startup(): winreg.DeleteValue(key, APP_NAME)
-        else:
-            cmd = f'"{sys.executable}"' if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{os.path.abspath(__file__)}"'
-            winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_ALL_ACCESS) as key:
+            if check_startup(): winreg.DeleteValue(key, APP_NAME)
+            else:
+                cmd = f'"{sys.executable}"' if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{os.path.abspath(__file__)}"'
+                winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)
+    except: pass
 
 def check_startup():
     try:
@@ -290,7 +355,6 @@ def main():
     tray.show()
 
     perform_load(DEFAULT_CONFIG)
-    
     if not active_clocks:
         add_new_clock()
         
