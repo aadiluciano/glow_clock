@@ -9,7 +9,7 @@ It’s not just a clock; it’s desktop furniture.
 Floating Elegance: Frameless, borderless clocks that float above your windows. They stay where you put them and never steal focus from your active work.
 World Clock Intelligence: No more calculating UTC offsets in your head. Select any global region from a searchable list, and the clock handles Daylight Savings and local shifts automatically.
 
-Visual Customization:
+🌈 Visual Customization:
 The Glow: Fine-tune the neon aura to match your wallpaper or keyboard backlight.
 The Gradient: Create smooth, dual-tone vertical blends.
 The Typography: Use any font installed on your system—from ultra-thin modern sans-serifs to bold digital displays.
