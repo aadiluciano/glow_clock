@@ -42,7 +42,7 @@ Stay on time. Stay focused.*
 
 [![glow_clock2](https://github.com/aadiluciano/glow_clock/blob/main/1.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/1.jpg)
 [![glow_clock2](https://github.com/aadiluciano/glow_clock/blob/main/2.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/2.jpg)
-
+[![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/3.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/3.jpg)
 [![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/4.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/4.jpg)
 [![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/5.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/5.jpg)
 [![glow_clock4](https://github.com/aadiluciano/glow_clock/blob/main/7.jpg)](https://github.com/aadiluciano/glow_clock/blob/main/7.jpg)
