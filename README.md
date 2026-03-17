@@ -8,34 +8,32 @@ It’s not just a clock; it’s desktop furniture.
 Floating Elegance: Frameless, borderless clocks that float above your windows. They stay where you put them and never steal focus from your active work.
 World Clock Intelligence: No more calculating UTC offsets in your head. Select any global region from a searchable list, and the clock handles Daylight Savings and local shifts automatically.
 
-Visual Precision:
+Visual Customization:
 The Glow: Fine-tune the neon aura to match your wallpaper or keyboard backlight.
 The Gradient: Create smooth, dual-tone vertical blends.
 The Typography: Use any font installed on your system—from ultra-thin modern sans-serifs to bold digital displays.
 Contextual Utility: Right-click a clock to transform it from a world clock into a precision countdown timer for your next meeting or launch.
+
 🛠 Features for Power Users
 Zero-Friction Persistence: The app silently remembers every clock's position, color, and settings. If you reboot, your layout is exactly as you left it.
 Multi-Instance Support: Spawn as many clocks as you need. Track London, New York, and Tokyo simultaneously.
 System Tray Control: A clean exit and management hub located in your notification area.
-Startup Integration: Toggle "Run at Startup" directly from the menu—no manual registry editing required.
+Startup Integration: Toggle "Run at Startup" directly from the menu.
 Layout Portability: Save specific sets of clocks as .json files. Create one layout for "Deep Work" and another for "Global Monitoring."
 
 🚀 Quick Start
-For Users
 Download glow_clock_v1.01.zip
 Unzip to your preferred location
 Extract and run .exe. A default clock will appear.
 Position it by clicking and dragging.
 Right-Click any clock to access the customization menu.
 Manage all clocks via the glowing clock icon in your System Tray (near the Wi-Fi/Volume).
-For Developers
 
 🧠 The Philosophy
 We believe that tools should be opinionated about aesthetics but flexible in function.
 
 Default system clocks are built for "everyone." Minimal Glow Clock Pro is built for people who spend 10+ hours a day in front of a screen and want their environment to look as sharp as their code. It uses a low-footprint Python/PyQt6 backend, ensuring that while the clock looks heavy on "glow," it’s feather-light on your CPU.
 
-📝 License & Contributions
 Built with ❤️ by kMoX. Feel free to fork, tweak the glow algorithms, or suggest new features. Pull requests are always welcome for performance optimizations or additional layout features.
 
 Stay on time. Stay focused.*
